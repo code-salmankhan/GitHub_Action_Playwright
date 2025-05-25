@@ -18,18 +18,29 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-    # --- Setup for Headed Mode (using xvfb) ---
-    - name: Install XVFB
+    
+      # --- Setup for Headed Mode (using xvfb) ---
+    - name: Install XVFB and other necessary packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y xvfb
+        sudo apt-get install -y xvfb libgbm-dev
+        # libgbm-dev is often needed for modern Chromium/Firefox to run without issues in headless/virtual display environments
 
     - name: Run Playwright tests in Headed Mode with XVFB
-      # We use 'xvfb-run' to start Playwright within a virtual display
-      run: xvfb-run --auto-display npx playwright test --headed
+      run: |
+        # Start Xvfb in the background
+        Xvfb :99 -ac -screen 0 1280x1024x24 &
+        # Set the DISPLAY environment variable
+        export DISPLAY=:99
+        # Run Playwright tests in headed mode
+        npx playwright test --headed
       env:
-        # Important: Set DISPLAY environment variable for headed mode
-        DISPLAY: ':99' # This is the default display used by xvfb-run --auto-display
+        # Playwright sometimes also benefits from these settings for CI environments
+        PLAYWRIGHT_CHROMIUM_ARGS: "--no-sandbox --disable-setuid-sandbox"
+        # The DISPLAY variable is explicitly set within the 'run' block as well,
+        # but defining it here ensures it's available for the entire step.
+        # However, the `export DISPLAY=:99` inside 'run' takes precedence for the command.
+        DISPLAY: ':99'
 
     # --- Upload Playwright Report ---
     - name: Upload Playwright Report
@@ -38,7 +49,7 @@ jobs:
       with:
         name: playwright-report
         path: playwright-report/
-        retention-days: 30 # Optional: How long to retain the artifact
+        retention-days: 30
 
     # --- Upload Test Results (including screenshots and videos) ---
     - name: Upload Test Results
@@ -47,4 +58,4 @@ jobs:
       with:
         name: playwright-test-results
         path: test-results/
-        retention-days: 30 # Optional: How long to retain the artifact
+        retention-days: 30
