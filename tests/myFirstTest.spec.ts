@@ -20,6 +20,6 @@ test('should naviaget to playwright website and check title', async ({ page }) =
 
 test('another test example', async ({ page }) => {
   await page.goto('https://www.google.com/');
-  const heading = page.locator('h1');
-  await expect(heading).toHaveText('Example Domain');
+  //Expect the title to contain "Playwright"
+  await expect(page).toHaveTitle(/Google/);
 });
